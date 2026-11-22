@@ -55,7 +55,8 @@ INSERT INTO local_name (species_id,name,language) VALUES
 (20,'Atis','Filipino');
 -- Placeholder: every species linked to all regions. Replace with real distribution data.
 INSERT INTO species_region (species_id,region_id) SELECT s.id,r.id FROM species s CROSS JOIN region r;
--- Image paths (files in /images)
+
+-- Photo paths for the existing plants
 UPDATE species SET image_url='images/indian-mallow.jpg' WHERE id=1;
 UPDATE species SET image_url='images/indian-pennywort.jpg' WHERE id=2;
 UPDATE species SET image_url='images/snake-weed.jpg' WHERE id=3;

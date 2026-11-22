@@ -1,0 +1,55 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Admin · Healing Plants</title>
+<style>
+:root{--bg:#000;--card:#0d110e;--ink:#e4ece6;--mut:#8fa196;--line:#2a332d;--g:#4f7a5f;--r:14px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}main{max-width:980px;margin:0 auto;padding:24px}
+h1{font:400 28px Georgia,serif;margin:0 0 12px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:16px}
+input,select,textarea,button{font:inherit;color:var(--ink);background:#000;border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-height:40px}
+input,select,textarea{width:100%}textarea{min-height:90px}label{display:block;margin:10px 0 4px;color:var(--mut);font-size:13px}button{cursor:pointer}
+.p{background:var(--g);border-color:var(--g);color:#fff}.d{border-color:#8a3b2e;color:#f0a898}:focus-visible{outline:3px solid #6fae7f;outline-offset:2px}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}td.a{white-space:nowrap;text-align:right}td.a button{margin-left:6px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>.f{flex:1;min-width:200px}.chk{display:flex;gap:16px;flex-wrap:wrap}.chk label{display:flex;gap:6px;margin:0;color:var(--ink);align-items:center}.chk input{width:auto;min-height:0}
+#msg{position:sticky;top:8px;z-index:5;padding:10px 14px;border-radius:10px;background:#16321f;margin-bottom:12px}#msg:empty{display:none}#msg.e{background:#3a1a14}a{color:var(--mut)}
+</style></head><body><main>
+<div id="msg" role="status" aria-live="polite"></div>
+<section id="login" class="card" hidden><h1>Admin login</h1><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password"><p><button class="p" id="go">Log in</button></p></section>
+<section id="app" hidden>
+<div class="row"><h1 style="flex:1;margin:0">Manage species</h1><a href="/">View site</a><button id="out">Log out</button></div><br>
+<div class="card"><table><thead><tr><th>Common name</th><th>Scientific name</th><th></th></tr></thead><tbody id="rows"></tbody></table><p><button class="p" id="new">+ Add species</button></p></div>
+<form id="f" class="card" hidden><h1 id="ft"></h1>
+<div class="row"><div class="f"><label for="sci">Scientific name *</label><input id="sci" required></div><div class="f"><label for="com">Common name *</label><input id="com" required></div></div>
+<div class="row"><div class="f"><label for="fam">Family *</label><input id="fam" list="fl" required><datalist id="fl"></datalist></div><div class="f"><label for="st">Conservation status</label><select id="st"></select></div></div>
+<label for="img">Image path (example: images/banana.jpg)</label><input id="img">
+<label for="use">Medicinal use</label><textarea id="use"></textarea>
+<label for="nm">Local names, one per line as: name, language</label><textarea id="nm" placeholder="Malunggay, Filipino"></textarea>
+<label>Regions</label><div class="chk" id="rg"></div><br><div class="chk"><label><input type="checkbox" id="tox"> Toxic</label><label><input type="checkbox" id="end"> Endemic</label></div>
+<p><button class="p" type="submit">Save</button> <button type="button" id="cx">Cancel</button></p></form></section>
+<script>
+const $=i=>document.getElementById(i),H=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let M,L=[],cur=null,tm;
+function say(t,e){clearTimeout(tm);const m=$('msg');m.textContent=t;m.className=e?'e':''}
+function show(i){$('login').hidden=i;$('app').hidden=!i}
+async function api(u,o={}){const r=await fetch(u,{credentials:'same-origin',headers:{'Content-Type':'application/json'},method:o.method,body:o.body?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));
+ if(r.status===401&&u!=='/api/login'){show(false);throw new Error(d.error||'Please log in again')}if(!r.ok)throw new Error(d.error||'Something went wrong');return d}
+async function load(){M=await api('/api/species?meta=1');L=await api('/api/species');
+ $('fl').innerHTML=M.families.map(f=>`<option value="${H(f)}">`).join('');$('st').innerHTML=M.statuses.map(s=>`<option value="${s.id}">${H(s.status_name)}</option>`).join('');
+ $('rg').innerHTML=M.regions.map(r=>`<label><input type="checkbox" name="rg" value="${r.id}"> ${H(r.region_name)}</label>`).join('');
+ $('rows').innerHTML=L.map(p=>`<tr><td>${H(p.common)}</td><td><i>${H(p.sci)}</i></td><td class="a"><button data-e="${p.id}">Edit</button><button class="d" data-d="${p.id}">Delete</button></td></tr>`).join('')}
+function form(p){cur=p;$('f').hidden=false;$('ft').textContent=p?'Edit '+p.common:'Add species';
+ $('sci').value=p?p.sci:'';$('com').value=p?p.common:'';$('fam').value=p?p.family:'';$('st').value=p?p.status_id:1;$('img').value=p&&p.img||'';$('use').value=p?p.use||'':'';
+ $('nm').value=p?p.names.map(n=>n.n+', '+n.l).join('\n'):'';$('tox').checked=!!(p&&p.toxic);$('end').checked=!!(p&&p.endemic);
+ document.querySelectorAll('[name=rg]').forEach(c=>c.checked=p?p.region_ids.includes(+c.value):false);$('f').scrollIntoView({behavior:'smooth'});$('sci').focus()}
+$('go').onclick=async()=>{try{await api('/api/login',{method:'POST',body:{password:$('pw').value}});$('pw').value='';show(true);await load();say('Logged in.')}catch(e){say(e.message,1)}};
+$('pw').onkeydown=e=>{if(e.key=='Enter')$('go').click()};
+$('out').onclick=async()=>{await fetch('/api/login',{method:'DELETE',credentials:'same-origin'});show(false);say('You are logged out.')};
+$('new').onclick=()=>form(null);$('cx').onclick=()=>{$('f').hidden=true};
+$('rows').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.e)return form(L.find(p=>p.id==b.dataset.e));
+ const p=L.find(x=>x.id==b.dataset.d);if(!p||!confirm('Delete '+p.common+'? You can undo right after.'))return;
+ try{await api('/api/species?id='+p.id,{method:'DELETE'});await load();clearTimeout(tm);const m=$('msg');m.className='';m.innerHTML='Deleted '+H(p.common)+'. <button id="undo">Undo</button>';
+  $('undo').onclick=async()=>{try{await api('/api/species',{method:'POST',body:p});await load();say('Restored '+p.common+'.')}catch(x){say(x.message,1)}};tm=setTimeout(()=>{m.textContent=''},12000)}catch(x){say(x.message,1)}};
+$('f').onsubmit=async e=>{e.preventDefault();
+ const names=$('nm').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.lastIndexOf(',');return i<0?{n:l,l:'Filipino'}:{n:l.slice(0,i).trim(),l:l.slice(i+1).trim()||'Filipino'}});
+ const body={sci:$('sci').value,common:$('com').value,family:$('fam').value,status_id:$('st').value,img:$('img').value,use:$('use').value,names,toxic:$('tox').checked,endemic:$('end').checked,region_ids:[...document.querySelectorAll('[name=rg]:checked')].map(c=>c.value)};
+ try{await api(cur?'/api/species?id='+cur.id:'/api/species',{method:cur?'PUT':'POST',body});await load();$('f').hidden=true;say('Saved '+body.common+'.');scrollTo(0,0)}catch(x){say(x.message,1)}};
+fetch('/api/login',{credentials:'same-origin'}).then(r=>{if(r.ok){show(true);return load()}show(false)}).catch(()=>show(false));
+</script></main></body></html>
