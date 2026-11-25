@@ -1,1 +1,9 @@
-{"name":"healing-plants-lab","private":true,"dependencies":{"mysql2":"^3.11.0"}}
+
+{
+  "name": "healing-plants-lab",
+  "private": true,
+  "dependencies": {
+    "mysql2": "^3.11.0",
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
